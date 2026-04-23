@@ -7,8 +7,9 @@ import Results from './pages/Results'
 import WhatIf from './pages/WhatIf'
 import KnowledgeGraph from './pages/KnowledgeGraph'
 import Login from './pages/Login'
+import Profile from './pages/Profile'
 import { CDTContext } from './store/CDTContext'
-import { fetchAnalysisHistory, getApiHealth } from './utils/api'
+import { fetchAnalysisHistory, fetchUserProfile, getApiHealth, saveUserProfile } from './utils/api'
 
 const AUTH_TOKEN_KEY = 'cdt_auth_token'
 const AUTH_USER_KEY = 'cdt_auth_user'
@@ -26,6 +27,12 @@ function loadStoredUser() {
 function normalizeHistory(payload) {
   const history = Array.isArray(payload?.history) ? payload.history : []
   return history.filter(entry => entry && typeof entry === 'object')
+}
+
+function normalizeProfile(payload) {
+  const profile = payload?.profile
+  if (!profile || typeof profile !== 'object') return null
+  return profile
 }
 
 function RequireAuth({ isAuthenticated, children }) {
@@ -54,6 +61,9 @@ export default function App() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState('')
   const [selectedHistoryId, setSelectedHistoryId] = useState('')
+  const [userProfile, setUserProfile] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileError, setProfileError] = useState('')
   const [backendHealth, setBackendHealth] = useState({
     status: 'checking',
     message: 'Checking backend status...',
@@ -88,6 +98,9 @@ export default function App() {
     setHistoryLoading(false)
     setHistoryError('')
     setSelectedHistoryId('')
+    setUserProfile(null)
+    setProfileLoading(false)
+    setProfileError('')
     localStorage.removeItem(AUTH_TOKEN_KEY)
     localStorage.removeItem(AUTH_USER_KEY)
   }, [])
@@ -130,6 +143,48 @@ export default function App() {
     }
   }, [authToken])
 
+  const refreshProfile = useCallback(async (tokenOverride = authToken) => {
+    const token = tokenOverride || ''
+    if (!token) {
+      setUserProfile(null)
+      setProfileError('')
+      return null
+    }
+
+    setProfileLoading(true)
+    setProfileError('')
+    try {
+      const payload = await fetchUserProfile(token)
+      const profile = normalizeProfile(payload)
+      setUserProfile(profile)
+      return profile
+    } catch (error) {
+      setProfileError(error.message || 'Failed to load profile')
+      throw error
+    } finally {
+      setProfileLoading(false)
+    }
+  }, [authToken])
+
+  const updateUserProfile = useCallback(async (profilePayload, tokenOverride = authToken) => {
+    const token = tokenOverride || ''
+    if (!token) return null
+
+    setProfileLoading(true)
+    setProfileError('')
+    try {
+      const payload = await saveUserProfile(profilePayload, token)
+      const profile = normalizeProfile(payload)
+      setUserProfile(profile)
+      return profile
+    } catch (error) {
+      setProfileError(error.message || 'Failed to save profile')
+      throw error
+    } finally {
+      setProfileLoading(false)
+    }
+  }, [authToken])
+
   useEffect(() => {
     let ignore = false
 
@@ -163,15 +218,20 @@ export default function App() {
     if (!authToken) {
       setAnalysisHistory([])
       setHistoryError('')
+      setUserProfile(null)
+      setProfileError('')
       return
     }
 
-    refreshHistory(authToken).catch(error => {
+    Promise.all([
+      refreshHistory(authToken),
+      refreshProfile(authToken),
+    ]).catch(error => {
       if (error?.status === 401) {
         clearAuthSession()
       }
     })
-  }, [authToken, clearAuthSession, refreshHistory])
+  }, [authToken, clearAuthSession, refreshHistory, refreshProfile])
 
   const contextValue = useMemo(() => ({
     analysisResult,
@@ -192,6 +252,11 @@ export default function App() {
     selectedHistoryId,
     setSelectedHistoryId,
     applyHistoryEntry,
+    userProfile,
+    profileLoading,
+    profileError,
+    refreshProfile,
+    updateUserProfile,
     backendHealth,
   }), [
     analysisResult,
@@ -208,6 +273,11 @@ export default function App() {
     historyError,
     selectedHistoryId,
     applyHistoryEntry,
+    userProfile,
+    profileLoading,
+    profileError,
+    refreshProfile,
+    updateUserProfile,
     backendHealth,
   ])
 
@@ -239,6 +309,14 @@ export default function App() {
               element={(
                 <RequireAuth isAuthenticated={isAuthenticated}>
                   <WhatIf />
+                </RequireAuth>
+              )}
+            />
+            <Route
+              path="profile"
+              element={(
+                <RequireAuth isAuthenticated={isAuthenticated}>
+                  <Profile />
                 </RequireAuth>
               )}
             />

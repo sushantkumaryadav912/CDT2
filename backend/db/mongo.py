@@ -28,6 +28,7 @@ def get_database() -> Database:
 def _ensure_indexes(db: Database) -> None:
     db["users"].create_index([("email", ASCENDING)], unique=True)
     db["analyses"].create_index([("user_id", ASCENDING), ("created_at", DESCENDING)])
+    db["profiles"].create_index([("user_id", ASCENDING)], unique=True)
 
 
 def get_users_collection() -> Collection:
@@ -36,3 +37,7 @@ def get_users_collection() -> Collection:
 
 def get_analyses_collection() -> Collection:
     return get_database()["analyses"]
+
+
+def get_profiles_collection() -> Collection:
+    return get_database()["profiles"]

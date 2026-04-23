@@ -108,3 +108,26 @@ export async function fetchAnalysisHistory(token, limit = 20) {
     throw error
   }
 }
+
+export function simulateStudent(payload, token) {
+  return request('/api/simulate', {
+    method: 'POST',
+    body: payload,
+    token,
+  })
+}
+
+export function fetchUserProfile(token) {
+  if (!token) {
+    return Promise.resolve({ profile: null })
+  }
+  return request('/api/profile', { token })
+}
+
+export function saveUserProfile(payload, token) {
+  return request('/api/profile', {
+    method: 'PUT',
+    body: payload,
+    token,
+  })
+}

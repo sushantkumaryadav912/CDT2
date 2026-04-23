@@ -15,6 +15,7 @@ const PROTECTED_NAV_ITEMS = [
   { to: '/analyze', icon: FlaskConical, label: 'Analyze Student' },
   { to: '/results', icon: BarChart3, label: 'AI Results' },
   { to: '/whatif', icon: GitBranch, label: 'What-If Sim' },
+  { to: '/profile', icon: Brain, label: 'My Profile' },
   { to: '/knowledge', icon: Network, label: 'Knowledge Graph' },
 ]
 
@@ -66,6 +67,8 @@ export default function Layout() {
               key={to}
               to={to}
               end={exact}
+              title={collapsed ? label : ''}
+              data-label={label}
               className={({ isActive }) =>
                 `nav-item ${isActive ? 'nav-item--active' : ''}`
               }
@@ -74,6 +77,17 @@ export default function Layout() {
               {!collapsed && <span className="nav-label">{label}</span>}
             </NavLink>
           ))}
+          {isAuthenticated && (
+            <button
+              className="nav-item nav-item--signout"
+              onClick={clearAuthSession}
+              title={collapsed ? 'Sign Out' : ''}
+              data-label="Sign Out"
+            >
+              <LogOut size={17} className="nav-icon" />
+              {!collapsed && <span className="nav-label">Sign Out</span>}
+            </button>
+          )}
         </nav>
 
         <div className="sidebar__footer">
@@ -88,12 +102,6 @@ export default function Layout() {
         </div>
       ))}
     </div>
-    {/* Logout button */}
-    {isAuthenticated && (
-      <button className="btn btn-ghost logout-btn" onClick={clearAuthSession}>
-        <LogOut size={14} /> Sign Out
-      </button>
-    )}
   </>
 )}
         </div>

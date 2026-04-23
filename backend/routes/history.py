@@ -38,6 +38,4 @@ def get_history(
         .limit(limit)
     )
     history = [_serialize_analysis(doc) for doc in cursor]
-    if not history:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No analysis history found")
     return {"history": history}

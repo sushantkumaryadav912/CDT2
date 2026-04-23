@@ -19,6 +19,12 @@
 
 .page-desc { font-size: 14px; line-height: 1.7; }
 
+.page-user-note {
+  margin-top: 10px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 /* Auth panel */
 .auth-panel {
   display: flex;
@@ -207,6 +213,97 @@
 
 .form-section { padding: 20px; }
 
+.profile-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.profile-rail__header,
+.goal-rail__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-rail__hint,
+.goal-rail__note {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.profile-rail__list,
+.goal-rail {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.profile-chip,
+.goal-pill {
+  flex: 0 0 auto;
+  text-align: left;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.profile-chip {
+  min-width: 190px;
+  padding: 12px 14px;
+}
+
+.profile-chip:hover,
+.goal-pill:hover {
+  border-color: var(--border-normal);
+  background: var(--bg-hover);
+}
+
+.profile-chip--active,
+.goal-pill--active {
+  border-color: rgba(245,200,66,0.42);
+  background: rgba(245,200,66,0.08);
+  box-shadow: 0 0 0 1px rgba(245,200,66,0.08) inset;
+}
+
+.profile-chip__name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.profile-chip__goal {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.goal-rail-wrap {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.goal-pill {
+  min-width: 170px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.goal-pill--active {
+  color: var(--accent-gold);
+}
+
 .form-section__header {
   display: flex;
   align-items: center;
@@ -347,6 +444,11 @@
     gap: 6px;
   }
   .auth-user-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .profile-rail__header,
+  .goal-rail__head {
     flex-direction: column;
     align-items: flex-start;
   }

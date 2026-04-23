@@ -1,11 +1,29 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FlaskConical, User, BookOpen, Heart, Target, Loader2, Sparkles, Clock3 } from 'lucide-react'
 import { useCDT } from '../store/CDTContext'
 import { analyzeStudent } from '../utils/api'
 import './Analyzer.css'
 
-const GOALS = ['Data Scientist', 'ML Engineer', 'AI Researcher', 'Software Engineer', 'Data Analyst']
+const GOALS = [
+  'Data Scientist',
+  'ML Engineer',
+  'AI Researcher',
+  'Software Engineer',
+  'Data Analyst',
+  'Backend Developer',
+  'Frontend Developer',
+  'Full Stack Developer',
+  'DevOps Engineer',
+  'MLOps Engineer',
+  'AI Engineer',
+  'Data Engineer',
+  'QA Engineer',
+  'BI Analyst',
+  'Engineering Manager',
+  'Software Architect',
+  'Developer Advocate',
+]
 
 const DEFAULT = {
   name: 'Student Alpha',
@@ -37,6 +55,25 @@ function formatHistoryDate(value) {
   })
 }
 
+function toDisplayName(value) {
+  if (!value) return 'Student'
+  return value
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+function getProfileSnapshot(entry, fallbackName) {
+  const input = entry?.input || entry?.result?.input || {}
+  return {
+    name: input?.name || entry?.result?.student || fallbackName || 'Student',
+    goal: input?.goal || entry?.result?.career || 'Data Scientist',
+    semester: input?.semester ?? 4,
+    values: input,
+  }
+}
+
 function SliderField({ label, name, min, max, step = 1, value, onChange, unit = '' }) {
   return (
     <div className="slider-wrap">
@@ -64,6 +101,7 @@ export default function Analyzer() {
   const [form, setForm] = useState(DEFAULT)
   const [runFeedback, setRunFeedback] = useState('')
   const [lastEngine, setLastEngine] = useState('')
+  const [selectedProfileId, setSelectedProfileId] = useState('')
 
   const {
     setAnalysisResult,
@@ -79,12 +117,84 @@ export default function Analyzer() {
     selectedHistoryId,
     setSelectedHistoryId,
     applyHistoryEntry,
+    currentUser,
+    userProfile,
   } = useCDT()
   const navigate = useNavigate()
+
+  const currentUserName = useMemo(() => {
+    const email = currentUser?.email || ''
+    const localPart = email.split('@')[0] || ''
+    return toDisplayName(localPart)
+  }, [currentUser])
+
+  const profileOptions = useMemo(() => {
+    const fallbackName = currentUserName || DEFAULT.name
+    const options = analysisHistory.slice(0, 6).map(entry => ({
+      id: entry.id,
+      source: 'history',
+      created_at: entry.created_at,
+      ...getProfileSnapshot(entry, fallbackName),
+    }))
+
+    const persistedProfile = userProfile?.profile
+    if (persistedProfile) {
+      options.unshift({
+        id: userProfile.id || 'saved-profile',
+        source: 'profile',
+        name: persistedProfile.name || fallbackName,
+        goal: persistedProfile.goal || DEFAULT.goal,
+        semester: persistedProfile.semester || DEFAULT.semester,
+        values: persistedProfile,
+      })
+    }
+
+    if (options.length === 0 && currentUser) {
+      options.push({
+        id: 'current-account',
+        source: 'account',
+        name: currentUserName || DEFAULT.name,
+        goal: DEFAULT.goal,
+        semester: DEFAULT.semester,
+        values: { ...DEFAULT, name: currentUserName || DEFAULT.name },
+      })
+    }
+
+    return options
+  }, [analysisHistory, currentUser, currentUserName, userProfile])
 
   const handleChange = (name, value) => {
     setForm(prev => ({ ...prev, [name]: value }))
   }
+
+  const applyProfile = (profile) => {
+    if (!profile) return
+    setSelectedProfileId(profile.id)
+    setForm(prev => ({
+      ...prev,
+      ...DEFAULT,
+      ...profile.values,
+      name: profile.name || prev.name,
+      goal: profile.goal || prev.goal,
+      semester: profile.semester || prev.semester,
+    }))
+    setRunFeedback(`Loaded ${profile.name}'s profile from your account history.`)
+  }
+
+  useEffect(() => {
+    if (selectedProfileId) return
+    if (profileOptions.length === 0) {
+      if (currentUserName && form.name === DEFAULT.name) {
+        setForm(prev => ({ ...prev, name: currentUserName }))
+      }
+      return
+    }
+
+    const preferredProfile = profileOptions[0]
+    if (preferredProfile) {
+      applyProfile(preferredProfile)
+    }
+  }, [currentUserName, form.name, profileOptions, selectedProfileId])
 
   const handleLoadFromHistory = (entry) => {
     applyHistoryEntry(entry)
@@ -146,11 +256,16 @@ export default function Analyzer() {
           Enter your academic metrics to generate a full Cognitive Digital Twin analysis across all 6 AI modules.
           This page runs protected backend inference and saves analysis history.
         </p>
+        {currentUser && (
+          <p className="page-user-note text-muted mono-font">
+            Signed in as {currentUser.email}. This view only shows your own saved analyses and profiles.
+          </p>
+        )}
       </div>
 
       <div className="history-panel card animate-fade-up delay-2">
           <div className="history-panel__head">
-            <p className="section-label">Recent Backend Runs</p>
+            <p className="section-label">Your Backend Runs</p>
             <span className="badge badge-cyan">{analysisHistory.length} saved</span>
           </div>
 
@@ -192,6 +307,30 @@ export default function Analyzer() {
               <User size={16} className="text-cyan" />
               <h2 className="form-section__title">Identity</h2>
             </div>
+            {profileOptions.length > 0 && (
+              <div className="profile-rail">
+                <div className="profile-rail__header">
+                  <div>
+                    <p className="section-label">Auto-selected Profiles</p>
+                    <p className="profile-rail__hint text-muted">Choose one of your own saved student profiles without stretching the layout.</p>
+                  </div>
+                  <span className="badge badge-gold">{profileOptions.length} profiles</span>
+                </div>
+                <div className="profile-rail__list">
+                  {profileOptions.map(profile => (
+                    <button
+                      key={profile.id}
+                      type="button"
+                      className={`profile-chip ${selectedProfileId === profile.id ? 'profile-chip--active' : ''}`}
+                      onClick={() => applyProfile(profile)}
+                    >
+                      <span className="profile-chip__name">{profile.name}</span>
+                      <span className="profile-chip__goal">{profile.goal}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="form-grid-2">
               <div className="field">
                 <label className="field-label" htmlFor="student-name">Student Name</label>
@@ -210,18 +349,30 @@ export default function Analyzer() {
                 </select>
               </div>
               <div className="field">
-                <label className="field-label" htmlFor="career-goal">Career Goal</label>
-                <select id="career-goal" className="input" value={form.goal} onChange={e => handleChange('goal', e.target.value)}>
-                  {GOALS.map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
-              </div>
-              <div className="field">
                 <label className="field-label" htmlFor="extracurricular">Extracurricular</label>
                 <select id="extracurricular" className="input" value={form.extracurricular} onChange={e => handleChange('extracurricular', parseInt(e.target.value))}>
                   <option value={0}>None</option>
                   <option value={1}>Some Activities</option>
                   <option value={2}>Heavy Involvement</option>
                 </select>
+              </div>
+            </div>
+            <div className="goal-rail-wrap">
+              <div className="goal-rail__head">
+                <span className="field-label">Career Goal</span>
+                <span className="goal-rail__note text-muted">Sliding options keep the panel compact.</span>
+              </div>
+              <div className="goal-rail" role="listbox" aria-label="Career goals">
+                {GOALS.map(goal => (
+                  <button
+                    key={goal}
+                    type="button"
+                    className={`goal-pill ${form.goal === goal ? 'goal-pill--active' : ''}`}
+                    onClick={() => handleChange('goal', goal)}
+                  >
+                    {goal}
+                  </button>
+                ))}
               </div>
             </div>
           </div>

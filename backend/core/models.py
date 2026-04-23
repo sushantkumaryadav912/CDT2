@@ -20,6 +20,10 @@ SKILL_POOL = [
 GOAL_POOL = [
     "Data Scientist", "Software Engineer", "AI Researcher",
     "Product Manager", "Data Analyst", "ML Engineer",
+    "Backend Developer", "Frontend Developer", "Full Stack Developer",
+    "DevOps Engineer", "MLOps Engineer", "AI Engineer",
+    "Data Engineer", "QA Engineer", "BI Analyst",
+    "Engineering Manager", "Software Architect", "Developer Advocate",
 ]
 
 RESUME_TEMPLATES = [
@@ -105,6 +109,54 @@ CAREER_FRAMES = {
         "Data Analyst", 6.0, ["SQL", "Statistics", "Python"],
         ["Statistics", "Databases"], 90000, 0.18,
     ),
+    "Backend Developer": CareerFrame(
+        "Backend Developer", 6.5, ["Python", "Cloud Computing", "Docker", "Databases"],
+        ["Programming", "Databases", "Cloud Computing"], 118000, 0.22,
+    ),
+    "Frontend Developer": CareerFrame(
+        "Frontend Developer", 6.0, ["Web Development", "Communication", "Teamwork", "Project Management"],
+        ["Programming", "Web Development"], 108000, 0.20,
+    ),
+    "Full Stack Developer": CareerFrame(
+        "Full Stack Developer", 6.4, ["Web Development", "Python", "SQL", "Cloud Computing"],
+        ["Programming", "Databases", "Cloud Computing"], 122000, 0.24,
+    ),
+    "DevOps Engineer": CareerFrame(
+        "DevOps Engineer", 6.8, ["Cloud Computing", "Docker", "Python", "Project Management"],
+        ["Cloud Computing", "Programming", "Databases"], 132000, 0.28,
+    ),
+    "MLOps Engineer": CareerFrame(
+        "MLOps Engineer", 7.2, ["Python", "Machine Learning", "Docker", "Cloud Computing"],
+        ["Machine Learning", "Cloud Computing", "Programming"], 138000, 0.30,
+    ),
+    "AI Engineer": CareerFrame(
+        "AI Engineer", 7.6, ["Python", "Machine Learning", "Deep Learning", "NLP"],
+        ["Machine Learning", "Deep Learning", "NLP"], 145000, 0.33,
+    ),
+    "Data Engineer": CareerFrame(
+        "Data Engineer", 6.9, ["Python", "SQL", "Spark", "Hadoop"],
+        ["Programming", "Databases", "Statistics"], 126000, 0.26,
+    ),
+    "QA Engineer": CareerFrame(
+        "QA Engineer", 5.8, ["Web Development", "Teamwork", "Communication", "Project Management"],
+        ["Programming", "Project Management"], 98000, 0.16,
+    ),
+    "BI Analyst": CareerFrame(
+        "BI Analyst", 6.2, ["SQL", "Tableau", "Statistics", "Data Analysis"],
+        ["Statistics", "Databases", "Data Analysis"], 95000, 0.19,
+    ),
+    "Engineering Manager": CareerFrame(
+        "Engineering Manager", 7.2, ["Leadership", "Project Management", "Communication", "Teamwork"],
+        ["Programming", "Project Management", "Communication"], 150000, 0.18,
+    ),
+    "Software Architect": CareerFrame(
+        "Software Architect", 7.4, ["Programming", "Cloud Computing", "Project Management", "Leadership"],
+        ["Programming", "Cloud Computing", "Project Management"], 155000, 0.20,
+    ),
+    "Developer Advocate": CareerFrame(
+        "Developer Advocate", 6.3, ["Communication", "Web Development", "Project Management", "Research"],
+        ["Web Development", "Communication", "Project Management"], 112000, 0.17,
+    ),
 }
 
 ACADEMIC_GRAPH = {
@@ -158,6 +210,18 @@ GOAL_NODE_MAP = {
     "AI Researcher": "AI Researcher Goal",
     "Data Analyst": "Data Analyst Goal",
     "Software Engineer": "Software Engineer Goal",
+    "Backend Developer": "Software Engineer Goal",
+    "Frontend Developer": "Software Engineer Goal",
+    "Full Stack Developer": "Software Engineer Goal",
+    "DevOps Engineer": "Software Engineer Goal",
+    "MLOps Engineer": "ML Engineer Goal",
+    "AI Engineer": "AI Researcher Goal",
+    "Data Engineer": "Data Analyst Goal",
+    "QA Engineer": "Software Engineer Goal",
+    "BI Analyst": "Data Analyst Goal",
+    "Engineering Manager": "Software Engineer Goal",
+    "Software Architect": "Software Engineer Goal",
+    "Developer Advocate": "Software Engineer Goal",
 }
 
 

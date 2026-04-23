@@ -76,3 +76,30 @@ def analyze(student: StudentInput, current_user: dict[str, Any] = Depends(get_cu
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error") from exc
 
     return result
+
+
+@router.post("/simulate")
+def simulate(student: StudentInput, current_user: dict[str, Any] = Depends(get_current_user)):
+    """Run CDT pipeline WITHOUT persisting to the database.
+
+    Designed for the What-If simulator which fires many requests
+    to explore parameter sensitivity.  We skip the DB write so the
+    user's analysis history stays clean.
+    """
+    payload = student.model_dump()
+    user_id = current_user["_id"]
+    logger.info("event=simulation.request user_id=%s", user_id)
+
+    try:
+        result = run_cdt_pipeline(payload)
+    except ValueError as exc:
+        logger.exception("event=simulation.bad_input user_id=%s", user_id)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except ModelArtifactError as exc:
+        logger.exception("event=simulation.pipeline_artifact_error user_id=%s", user_id)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error") from exc
+    except Exception as exc:
+        logger.exception("event=simulation.pipeline_error user_id=%s", user_id)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error") from exc
+
+    return result

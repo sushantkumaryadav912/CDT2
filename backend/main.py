@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -13,6 +14,7 @@ from backend.core.config import get_settings
 from backend.routes.analyze import router as analyze_router
 from backend.routes.auth import router as auth_router
 from backend.routes.history import router as history_router
+from backend.routes.profile import router as profile_router
 
 
 logging.basicConfig(
@@ -23,7 +25,29 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
-app = FastAPI(title="CDT API", version="1.0.0")
+def _download_nltk_data() -> None:
+    """Download required NLTK data packages if not already present."""
+    import nltk
+
+    packages = ["punkt_tab", "stopwords", "wordnet", "averaged_perceptron_tagger_eng"]
+    for package in packages:
+        try:
+            nltk.data.find(f"tokenizers/{package}" if "punkt" in package else package)
+        except LookupError:
+            logger.info("event=nltk.downloading package=%s", package)
+            nltk.download(package, quiet=True)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup / shutdown lifecycle."""
+    logger.info("event=startup downloading NLTK data")
+    _download_nltk_data()
+    logger.info("event=startup NLTK data ready")
+    yield
+
+
+app = FastAPI(title="CDT API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -79,6 +103,7 @@ def health():
 app.include_router(auth_router)
 app.include_router(analyze_router)
 app.include_router(history_router)
+app.include_router(profile_router)
 
 
 if __name__ == "__main__":
