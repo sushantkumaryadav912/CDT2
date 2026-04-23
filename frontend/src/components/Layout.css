@@ -95,6 +95,12 @@
   color: var(--accent-green);
   letter-spacing: 0.1em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-text--guest {
+  color: var(--text-muted);
 }
 
 /* ---- NAV ---- */

@@ -63,6 +63,29 @@
 /* Info panel */
 .kg__panel { display: flex; flex-direction: column; gap: 16px; }
 
+.kg-student-summary {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kg-student-summary__goal {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.kg-student-summary__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.kg-student-summary__hint {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .info-card { padding: 18px; }
 .info-placeholder {
   padding: 28px 20px;

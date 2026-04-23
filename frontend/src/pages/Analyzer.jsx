@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FlaskConical, User, BookOpen, Heart, Target, Loader2, Sparkles } from 'lucide-react'
+import { FlaskConical, User, BookOpen, Heart, Target, Loader2, Sparkles, Clock3 } from 'lucide-react'
 import { useCDT } from '../store/CDTContext'
-import { analyzeMock } from '../utils/mockApi'
+import { analyzeStudent } from '../utils/api'
 import './Analyzer.css'
 
 const GOALS = ['Data Scientist', 'ML Engineer', 'AI Researcher', 'Software Engineer', 'Data Analyst']
@@ -23,6 +23,18 @@ const DEFAULT = {
   semester: 4,
   goal: 'Data Scientist',
   resume_text: 'Experienced in Python and Machine Learning. Worked on projects involving SQL and Statistics. Interested in Deep Learning and NLP. Strong background in Data Analysis and Research.',
+}
+
+function formatHistoryDate(value) {
+  if (!value) return 'Unknown time'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Unknown time'
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function SliderField({ label, name, min, max, step = 1, value, onChange, unit = '' }) {
@@ -50,35 +62,72 @@ function SliderField({ label, name, min, max, step = 1, value, onChange, unit = 
 
 export default function Analyzer() {
   const [form, setForm] = useState(DEFAULT)
-  const { setAnalysisResult, setStudentInput, setIsAnalyzing, isAnalyzing } = useCDT()
+  const [runFeedback, setRunFeedback] = useState('')
+  const [lastEngine, setLastEngine] = useState('')
+
+  const {
+    setAnalysisResult,
+    setStudentInput,
+    setIsAnalyzing,
+    isAnalyzing,
+    authToken,
+    clearAuthSession,
+    analysisHistory,
+    refreshHistory,
+    historyLoading,
+    historyError,
+    selectedHistoryId,
+    setSelectedHistoryId,
+    applyHistoryEntry,
+  } = useCDT()
   const navigate = useNavigate()
 
   const handleChange = (name, value) => {
     setForm(prev => ({ ...prev, [name]: value }))
   }
 
+  const handleLoadFromHistory = (entry) => {
+    applyHistoryEntry(entry)
+    setRunFeedback('Loaded a previous backend analysis from history.')
+    navigate('/results')
+  }
+
   const handleSubmit = async () => {
+    if (!authToken) {
+      navigate('/login', {
+        replace: true,
+        state: { from: '/analyze' },
+      })
+      return
+    }
+
     setIsAnalyzing(true)
+    setRunFeedback('')
     setStudentInput(form)
+    setSelectedHistoryId('')
+
     try {
-      // Try real API, fall back to mock
-      let result
+      const result = await analyzeStudent(form, authToken)
       try {
-        const res = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        })
-        if (res.ok) {
-          result = await res.json()
-        } else {
-          result = analyzeMock(form)
-        }
-      } catch {
-        result = analyzeMock(form)
+        await refreshHistory(authToken)
+      } catch (historyLoadError) {
+        setRunFeedback(`Analysis completed, but history refresh failed (${historyLoadError.message}).`)
       }
+
+      setLastEngine('backend')
       setAnalysisResult(result)
       navigate('/results')
+    } catch (error) {
+      if (error?.status === 401) {
+        clearAuthSession()
+        navigate('/login', {
+          replace: true,
+          state: { from: '/analyze' },
+        })
+        setRunFeedback('Session expired. Please sign in again.')
+      } else {
+        setRunFeedback(error?.message || 'Backend analysis failed. Please retry.')
+      }
     } finally {
       setIsAnalyzing(false)
     }
@@ -95,7 +144,43 @@ export default function Analyzer() {
         <h1 className="page-title">Student Profile Setup</h1>
         <p className="page-desc text-secondary">
           Enter your academic metrics to generate a full Cognitive Digital Twin analysis across all 6 AI modules.
+          This page runs protected backend inference and saves analysis history.
         </p>
+      </div>
+
+      <div className="history-panel card animate-fade-up delay-2">
+          <div className="history-panel__head">
+            <p className="section-label">Recent Backend Runs</p>
+            <span className="badge badge-cyan">{analysisHistory.length} saved</span>
+          </div>
+
+          {historyLoading ? (
+            <p className="history-message text-muted mono-font">Loading history...</p>
+          ) : historyError ? (
+            <p className="history-message history-message--error">{historyError}</p>
+          ) : analysisHistory.length === 0 ? (
+            <p className="history-message text-muted">No saved analyses yet. Run one now to populate history.</p>
+          ) : (
+            <div className="history-list">
+              {analysisHistory.slice(0, 5).map(entry => (
+                <button
+                  key={entry.id}
+                  className={`history-item ${selectedHistoryId === entry.id ? 'history-item--active' : ''}`}
+                  onClick={() => handleLoadFromHistory(entry)}
+                >
+                  <div className="history-item__top">
+                    <span className="history-item__name">{entry?.input?.name || entry?.result?.student || 'Student'}</span>
+                    <span className="history-item__time"><Clock3 size={12} /> {formatHistoryDate(entry.created_at)}</span>
+                  </div>
+                  <div className="history-item__meta">
+                    <span>{entry?.input?.goal || entry?.result?.career || 'Goal N/A'}</span>
+                    <span>Perf: {entry?.result?.ml?.performance_prediction || 'N/A'}</span>
+                    <span>Burnout: {entry?.result?.ml?.burnout_prediction || 'N/A'}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
       </div>
 
       <div className="analyzer__body">
@@ -109,8 +194,9 @@ export default function Analyzer() {
             </div>
             <div className="form-grid-2">
               <div className="field">
-                <label className="field-label">Student Name</label>
+                <label className="field-label" htmlFor="student-name">Student Name</label>
                 <input
+                  id="student-name"
                   className="input"
                   value={form.name}
                   onChange={e => handleChange('name', e.target.value)}
@@ -118,20 +204,20 @@ export default function Analyzer() {
                 />
               </div>
               <div className="field">
-                <label className="field-label">Semester</label>
-                <select className="input" value={form.semester} onChange={e => handleChange('semester', parseInt(e.target.value))}>
+                <label className="field-label" htmlFor="semester">Semester</label>
+                <select id="semester" className="input" value={form.semester} onChange={e => handleChange('semester', parseInt(e.target.value))}>
                   {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s}>Semester {s}</option>)}
                 </select>
               </div>
               <div className="field">
-                <label className="field-label">Career Goal</label>
-                <select className="input" value={form.goal} onChange={e => handleChange('goal', e.target.value)}>
+                <label className="field-label" htmlFor="career-goal">Career Goal</label>
+                <select id="career-goal" className="input" value={form.goal} onChange={e => handleChange('goal', e.target.value)}>
                   {GOALS.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
               <div className="field">
-                <label className="field-label">Extracurricular</label>
-                <select className="input" value={form.extracurricular} onChange={e => handleChange('extracurricular', parseInt(e.target.value))}>
+                <label className="field-label" htmlFor="extracurricular">Extracurricular</label>
+                <select id="extracurricular" className="input" value={form.extracurricular} onChange={e => handleChange('extracurricular', parseInt(e.target.value))}>
                   <option value={0}>None</option>
                   <option value={1}>Some Activities</option>
                   <option value={2}>Heavy Involvement</option>
@@ -248,6 +334,13 @@ export default function Analyzer() {
                 <><Sparkles size={16} /> Run CDT Analysis</>
               )}
             </button>
+
+            {lastEngine && (
+              <p className="engine-note text-muted mono-font">
+                Last run engine: {lastEngine === 'backend' ? 'Backend API (Mongo + JWT)' : 'Unavailable'}
+              </p>
+            )}
+            {runFeedback && <p className="engine-note text-secondary">{runFeedback}</p>}
           </div>
         </div>
       </div>

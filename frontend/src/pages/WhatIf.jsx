@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts'
+import React, { useEffect, useMemo, useState } from 'react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts'
 import { GitBranch, TrendingUp, Zap } from 'lucide-react'
 import { useCDT } from '../store/CDTContext'
 import { analyzeMock } from '../utils/mockApi'
+import { analyzeStudent } from '../utils/api'
 import './WhatIf.css'
 
 const PERF_MAP = { 'At-Risk': 0, Average: 1, Good: 2, Excellent: 3 }
@@ -16,6 +17,22 @@ const BURN_COLORS = ['#52d68a', '#f5c842', '#e85454']
 function simulate(base, param, value) {
   const s = { ...base, [param]: value }
   return analyzeMock(s)
+}
+
+function toPoint(result, value, unit) {
+  const performanceLabel = result?.ml?.performance_prediction || 'Average'
+  const burnoutLabel = result?.ml?.burnout_prediction || 'Low'
+  const passProb = Number(result?.ml?.pass_probability ?? 0)
+
+  return {
+    value,
+    label: `${value}${unit || ''}`,
+    perf: PERF_MAP[performanceLabel] ?? 1,
+    perfLabel: performanceLabel,
+    burn: BURN_MAP[burnoutLabel] ?? 0,
+    burnLabel: burnoutLabel,
+    passProb: parseFloat((passProb * 100).toFixed(1)),
+  }
 }
 
 const PARAMS = [
@@ -51,32 +68,73 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function WhatIf() {
-  const { studentInput } = useCDT()
+  const { studentInput, authToken, isAuthenticated } = useCDT()
   const base = studentInput || DEFAULT_STUDENT
   const [selectedParam, setSelectedParam] = useState(PARAMS[0].key)
+  const [simData, setSimData] = useState([])
+  const [isSimLoading, setIsSimLoading] = useState(false)
+  const [simError, setSimError] = useState('')
+  const [simEngine, setSimEngine] = useState('mock')
   const param = PARAMS.find(p => p.key === selectedParam)
 
-  const simData = useMemo(() => {
+  const values = useMemo(() => {
     const values = []
     for (let v = param.min; v <= param.max; v += param.step) {
       values.push(parseFloat(v.toFixed(2)))
     }
-    return values.map(val => {
-      const r = simulate(base, selectedParam, val)
-      return {
-        value: val,
-        label: `${val}${param.unit || ''}`,
-        perf: PERF_MAP[r.ml.performance_prediction] ?? 1,
-        perfLabel: r.ml.performance_prediction,
-        burn: BURN_MAP[r.ml.burnout_prediction] ?? 0,
-        burnLabel: r.ml.burnout_prediction,
-        passProb: parseFloat((r.ml.pass_probability * 100).toFixed(1)),
+    return values
+  }, [param.max, param.min, param.step])
+
+  useEffect(() => {
+    let ignore = false
+
+    const buildWithMock = () => {
+      const next = values.map(val => toPoint(simulate(base, selectedParam, val), val, param.unit))
+      if (!ignore) {
+        setSimData(next)
+        setSimEngine('mock')
       }
-    })
-  }, [selectedParam, base])
+    }
+
+    const runSimulation = async () => {
+      setIsSimLoading(true)
+      setSimError('')
+
+      if (!isAuthenticated || !authToken) {
+        buildWithMock()
+        if (!ignore) {
+          setIsSimLoading(false)
+        }
+        return
+      }
+
+      try {
+        const results = await Promise.all(
+          values.map(value => analyzeStudent({ ...base, [selectedParam]: value }, authToken))
+        )
+        if (ignore) return
+        setSimData(results.map((result, index) => toPoint(result, values[index], param.unit)))
+        setSimEngine('backend')
+      } catch (error) {
+        if (ignore) return
+        buildWithMock()
+        setSimError(`Backend simulation failed (${error.message}). Showing local approximation.`)
+      } finally {
+        if (!ignore) {
+          setIsSimLoading(false)
+        }
+      }
+    }
+
+    runSimulation()
+
+    return () => {
+      ignore = true
+    }
+  }, [authToken, base, isAuthenticated, param.unit, selectedParam, values])
 
   const currentVal = base[selectedParam]
-  const currentSim = simulate(base, selectedParam, currentVal)
+  const currentPoint = simData.find(point => Math.abs(point.value - currentVal) < 1e-9)
 
   return (
     <div className="whatif animate-fade-in">
@@ -91,6 +149,13 @@ export default function WhatIf() {
           Based on{' '}
           <span className="text-gold">{base.name}</span>'s profile.
         </p>
+        <div className="sim-mode-row">
+          <span className={`badge ${simEngine === 'backend' ? 'badge-green' : 'badge-gold'}`}>
+            {simEngine === 'backend' ? 'Backend Simulation' : 'Local Simulation'}
+          </span>
+          {isSimLoading && <span className="sim-mode-status text-muted mono-font">Recomputing scenarios...</span>}
+        </div>
+        {simError && <p className="sim-mode-error">{simError}</p>}
       </div>
 
       {/* Parameter selector */}
@@ -120,19 +185,19 @@ export default function WhatIf() {
               <div className="snapshot-sub text-muted">{param.label}</div>
             </div>
             <div>
-              <div className="snapshot-big" style={{ color: PERF_COLORS[PERF_MAP[currentSim.ml.performance_prediction]] }}>
-                {currentSim.ml.performance_prediction}
+              <div className="snapshot-big" style={{ color: PERF_COLORS[currentPoint?.perf ?? 1] }}>
+                {currentPoint?.perfLabel || 'Average'}
               </div>
               <div className="snapshot-sub text-muted">Predicted Performance</div>
             </div>
             <div>
-              <div className="snapshot-big" style={{ color: BURN_COLORS[BURN_MAP[currentSim.ml.burnout_prediction]] }}>
-                {currentSim.ml.burnout_prediction}
+              <div className="snapshot-big" style={{ color: BURN_COLORS[currentPoint?.burn ?? 0] }}>
+                {currentPoint?.burnLabel || 'Low'}
               </div>
               <div className="snapshot-sub text-muted">Burnout Risk</div>
             </div>
             <div>
-              <div className="snapshot-big text-cyan">{(currentSim.ml.pass_probability * 100).toFixed(0)}%</div>
+              <div className="snapshot-big text-cyan">{Math.round(currentPoint?.passProb ?? 0)}%</div>
               <div className="snapshot-sub text-muted">Pass Probability</div>
             </div>
           </div>
@@ -229,48 +294,52 @@ export default function WhatIf() {
       {/* Insights */}
       <div className="card insights-card">
         <p className="section-label">Simulation Insights</p>
-        <div className="insights-grid">
-          <div className="insight">
-            <div className="insight-icon text-gold">📈</div>
-            <div>
-              <div className="insight-title">Optimal {param.label}</div>
-              <div className="insight-desc text-secondary">
-                {(() => {
-                  const bestPerf = simData.reduce((best, d) => d.perf > best.perf ? d : best, simData[0])
-                  return `Highest performance at ${bestPerf.label} — predicted ${bestPerf.perfLabel}`
-                })()}
+        {simData.length === 0 ? (
+          <p className="text-secondary" style={{ fontSize: 13 }}>Simulation data is loading...</p>
+        ) : (
+          <div className="insights-grid">
+            <div className="insight">
+              <div className="insight-icon text-gold">📈</div>
+              <div>
+                <div className="insight-title">Optimal {param.label}</div>
+                <div className="insight-desc text-secondary">
+                  {(() => {
+                    const bestPerf = simData.reduce((best, d) => d.perf > best.perf ? d : best, simData[0])
+                    return `Highest performance at ${bestPerf.label} — predicted ${bestPerf.perfLabel}`
+                  })()}
+                </div>
+              </div>
+            </div>
+            <div className="insight">
+              <div className="insight-icon text-green">🛡️</div>
+              <div>
+                <div className="insight-title">Lowest Burnout Point</div>
+                <div className="insight-desc text-secondary">
+                  {(() => {
+                    const safest = simData.reduce((best, d) => d.burn < best.burn ? d : best, simData[0])
+                    return `Lowest burnout at ${safest.label} — risk ${safest.burnLabel}`
+                  })()}
+                </div>
+              </div>
+            </div>
+            <div className="insight">
+              <div className="insight-icon text-cyan">🎯</div>
+              <div>
+                <div className="insight-title">Sweet Spot</div>
+                <div className="insight-desc text-secondary">
+                  {(() => {
+                    const balanced = simData.reduce((best, d) => {
+                      const score = d.perf * 2 - d.burn
+                      const bestScore = best.perf * 2 - best.burn
+                      return score > bestScore ? d : best
+                    }, simData[0])
+                    return `Best balance at ${balanced.label} — ${balanced.perfLabel} performance, ${balanced.burnLabel} burnout`
+                  })()}
+                </div>
               </div>
             </div>
           </div>
-          <div className="insight">
-            <div className="insight-icon text-green">🛡️</div>
-            <div>
-              <div className="insight-title">Lowest Burnout Point</div>
-              <div className="insight-desc text-secondary">
-                {(() => {
-                  const safest = simData.reduce((best, d) => d.burn < best.burn ? d : best, simData[0])
-                  return `Lowest burnout at ${safest.label} — risk ${safest.burnLabel}`
-                })()}
-              </div>
-            </div>
-          </div>
-          <div className="insight">
-            <div className="insight-icon text-cyan">🎯</div>
-            <div>
-              <div className="insight-title">Sweet Spot</div>
-              <div className="insight-desc text-secondary">
-                {(() => {
-                  const balanced = simData.reduce((best, d) => {
-                    const score = d.perf * 2 - d.burn
-                    const bestScore = best.perf * 2 - best.burn
-                    return score > bestScore ? d : best
-                  }, simData[0])
-                  return `Best balance at ${balanced.label} — ${balanced.perfLabel} performance, ${balanced.burnLabel} burnout`
-                })()}
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )

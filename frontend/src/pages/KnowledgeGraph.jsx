@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { Network, Search, Info, BookOpen, Briefcase, Cpu, ChevronRight } from 'lucide-react'
+import React, { useState, useRef } from 'react'
+import { Network, ChevronRight } from 'lucide-react'
+import { useCDT } from '../store/CDTContext'
 import './KnowledgeGraph.css'
 
 // Full knowledge base mirroring the Python SemanticNetwork
@@ -110,10 +111,15 @@ const EDGE_DASH = {
 }
 
 export default function KnowledgeGraph() {
+  const { analysisResult } = useCDT()
   const [selected, setSelected] = useState(null)
   const [hovered, setHovered] = useState(null)
   const [filter, setFilter] = useState('all')
   const svgRef = useRef(null)
+
+  const studentSkills = analysisResult?.nlp?.extracted_skills || []
+  const skillGaps = analysisResult?.knowledge_graph?.skill_gaps || []
+  const activeGoal = analysisResult?.career || analysisResult?.input?.goal || null
 
   const activeNode = hovered || selected
 
@@ -122,10 +128,6 @@ export default function KnowledgeGraph() {
     ? EDGES.filter(e => e.from === activeNode || e.to === activeNode)
     : []
   const connectedNodes = new Set(connectedEdges.flatMap(e => [e.from, e.to]))
-
-  const filteredNodes = Object.entries(NODES).filter(([name, data]) =>
-    filter === 'all' || data.type === filter
-  )
 
   const nodeInfo = activeNode ? NODES[activeNode] : null
   const outEdges = activeNode ? EDGES.filter(e => e.from === activeNode) : []
@@ -234,6 +236,8 @@ export default function KnowledgeGraph() {
                 const isConnected = connectedNodes.has(name)
                 const isDimmed = activeNode && !isActive && !isConnected
                 const color = TYPE_COLORS[data.type]
+                const isStudentSkill = data.type === 'skill' && studentSkills.includes(name)
+                const isMissingSkill = data.type === 'skill' && skillGaps.includes(name)
 
                 return (
                   <g
@@ -251,8 +255,8 @@ export default function KnowledgeGraph() {
                     {/* Circle */}
                     <circle
                       r={isActive ? 22 : 18}
-                      fill={isActive ? color : `${color}22`}
-                      stroke={color}
+                      fill={isActive ? color : isMissingSkill ? 'rgba(232,84,84,0.18)' : isStudentSkill ? 'rgba(82,214,138,0.18)' : `${color}22`}
+                      stroke={isMissingSkill ? '#e85454' : isStudentSkill ? '#52d68a' : color}
                       strokeWidth={isActive ? 2.5 : 1.5}
                       style={{ transition: 'all 0.2s' }}
                     />
@@ -286,6 +290,28 @@ export default function KnowledgeGraph() {
 
           {/* Info panel */}
           <div className="kg__panel">
+            <div className="card kg-student-summary">
+              <p className="section-label">Student Overlay</p>
+              {analysisResult ? (
+                <>
+                  <p className="kg-student-summary__goal">Goal: {activeGoal || 'N/A'}</p>
+                  <div className="kg-student-summary__metrics">
+                    <span className="badge badge-green">Skills Found: {studentSkills.length}</span>
+                    <span className={`badge ${skillGaps.length > 0 ? 'badge-red' : 'badge-green'}`}>
+                      Skill Gaps: {skillGaps.length}
+                    </span>
+                  </div>
+                  <p className="kg-student-summary__hint text-secondary">
+                    Graph overlay colors: green = detected skills, red = missing required skills.
+                  </p>
+                </>
+              ) : (
+                <p className="kg-student-summary__hint text-secondary">
+                  Run analysis first to overlay student skills and career gaps on the graph.
+                </p>
+              )}
+            </div>
+
             {activeNode && nodeInfo ? (
               <div className="info-card card animate-fade-in">
                 <div className="info-type">

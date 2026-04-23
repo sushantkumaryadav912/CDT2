@@ -7,26 +7,33 @@ A hybrid AI system integrating **6 distinct AI paradigms** into a unified academ
 ## Project Structure
 
 ```
-cdt-project/
-├── frontend/               ← React + Vite frontend
+CDT2/
+├── frontend/                       ← React + Vite frontend
 │   ├── src/
 │   │   ├── pages/
-│   │   │   ├── Dashboard.jsx       ← Overview & module cards
-│   │   │   ├── Analyzer.jsx        ← Student input form
-│   │   │   ├── Results.jsx         ← Full CDT analysis (6 tabs)
-│   │   │   ├── WhatIf.jsx          ← What-if simulation charts
-│   │   │   └── KnowledgeGraph.jsx  ← Interactive semantic network
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Analyzer.jsx        ← Input + auth (signup/login/logout)
+│   │   │   ├── Results.jsx
+│   │   │   ├── WhatIf.jsx
+│   │   │   └── KnowledgeGraph.jsx
 │   │   ├── components/
-│   │   │   └── Layout.jsx          ← Sidebar navigation
+│   │   │   └── Layout.jsx
 │   │   ├── store/
-│   │   │   └── CDTContext.jsx      ← Global state
+│   │   │   └── CDTContext.jsx
 │   │   └── utils/
-│   │       └── mockApi.js          ← Standalone mock (no backend needed)
+│   │       └── mockApi.js
 │   └── package.json
 ├── backend/
-│   ├── main.py             ← FastAPI server (wraps CDT.py)
+│   ├── main.py                     ← FastAPI app bootstrap
+│   ├── core/                       ← CDT orchestration + config
+│   ├── services/                   ← NLP/ML/search/expert/agent modules
+│   ├── auth/                       ← JWT auth helpers
+│   ├── db/                         ← MongoDB integration
+│   ├── routes/                     ← auth/analyze/history routers
+│   ├── artifacts/
+│   │   └── cdt_model.pt
+│   ├── train.py                    ← model artifact training script
 │   └── requirements.txt
-├── CDT.py                  ← Your original CDT notebook code
 └── README.md
 ```
 
@@ -57,7 +64,7 @@ npm run dev
 ```
 Open: http://localhost:5173
 
-### Option B — With Python Backend (full CDT pipeline)
+### Option B — With Python Backend (Mongo + JWT + full CDT pipeline)
 
 **1. Install backend dependencies:**
 ```bash
@@ -65,16 +72,19 @@ cd backend
 pip install -r requirements.txt
 ```
 
-**2. Also install CDT dependencies (from root):**
+**2. Configure backend environment (.env in project root):**
 ```bash
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-pip install nltk networkx scikit-learn matplotlib seaborn pandas numpy fastapi uvicorn
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB_NAME=cdt
+JWT_SECRET=change-me-in-production
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=1440
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 ```
 
-**3. Start backend:**
+**3. Start backend (from project root):**
 ```bash
-cd backend
-uvicorn main:app --reload --port 8000
+python -m uvicorn backend.main:app --reload --port 8000
 ```
 
 **4. Start frontend (new terminal):**
@@ -84,7 +94,12 @@ npm install
 npm run dev
 ```
 
-The frontend auto-detects the backend — if `/api/analyze` responds, it uses the real CDT pipeline. Otherwise it falls back to the built-in mock.
+**5. Sign in from Analyzer page:**
+- Use the "Backend Access" panel to sign up or sign in.
+- Authenticated runs call protected `/api/analyze` and persist to MongoDB.
+- `GET /api/history` is used to load recent analysis history.
+
+If backend auth/API is unavailable, analyzer automatically falls back to local mock inference so the UI remains usable.
 
 ---
 
