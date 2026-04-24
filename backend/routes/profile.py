@@ -6,8 +6,8 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-from backend.auth.auth import get_current_user
-from backend.db.mongo import get_profiles_collection
+from auth.auth import get_current_user
+from db.mongo import get_profiles_collection
 
 
 router = APIRouter(prefix="/api", tags=["profile"])

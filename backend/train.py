@@ -11,8 +11,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from torch.utils.data import DataLoader, TensorDataset
 
-from backend.core.models import generate_synthetic_dataset
-from backend.services.ml import FEATURE_COLS, StudentMLP, build_features
+from core.models import generate_synthetic_dataset
+from services.ml import FEATURE_COLS, StudentMLP, build_features
 
 
 ARTIFACT_PATH = Path(__file__).resolve().parent / "artifacts" / "cdt_model.pt"

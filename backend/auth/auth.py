@@ -13,8 +13,8 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from pymongo.errors import DuplicateKeyError
 
-from backend.core.config import get_settings
-from backend.db.mongo import get_users_collection
+from core.config import get_settings
+from db.mongo import get_users_collection
 
 
 PASSWORD_HASH_PREFIX = "bcrypt_sha256$"

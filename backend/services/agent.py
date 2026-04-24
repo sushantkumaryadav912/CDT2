@@ -3,9 +3,9 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from backend.core.models import StudentProfile, compute_labels
-from backend.services.expert import ExpertSystem
-from backend.services.ml import batch_predict
+from core.models import StudentProfile, compute_labels
+from services.expert import ExpertSystem
+from services.ml import batch_predict
 
 
 ALERT_THRESHOLDS = {

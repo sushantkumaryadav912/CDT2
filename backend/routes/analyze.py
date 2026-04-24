@@ -9,9 +9,9 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from backend.auth.auth import get_current_user
-from backend.core.cdt import ModelArtifactError, run_cdt_pipeline
-from backend.db.mongo import get_analyses_collection
+from auth.auth import get_current_user
+from core.cdt import ModelArtifactError, run_cdt_pipeline
+from db.mongo import get_analyses_collection
 
 
 logger = logging.getLogger(__name__)

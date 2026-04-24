@@ -4,7 +4,7 @@ from collections import deque
 from heapq import heappop, heappush
 from typing import Any
 
-from backend.core.models import ACADEMIC_GRAPH, GOAL_NODES, HEURISTIC
+from core.models import ACADEMIC_GRAPH, GOAL_NODES, HEURISTIC
 
 
 class AcademicSearchEngine:

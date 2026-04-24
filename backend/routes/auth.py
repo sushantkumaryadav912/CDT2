@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
-from backend.auth.auth import authenticate_user, create_access_token, create_user
+from auth.auth import authenticate_user, create_access_token, create_user
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])

@@ -10,11 +10,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.core.config import get_settings
-from backend.routes.analyze import router as analyze_router
-from backend.routes.auth import router as auth_router
-from backend.routes.history import router as history_router
-from backend.routes.profile import router as profile_router
+from core.config import get_settings
+from routes.analyze import router as analyze_router
+from routes.auth import router as auth_router
+from routes.history import router as history_router
+from routes.profile import router as profile_router
 
 
 logging.basicConfig(

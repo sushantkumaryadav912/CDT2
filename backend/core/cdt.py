@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import networkx as nx
 
-from backend.core.models import CAREER_FRAMES, GOAL_NODE_MAP, StudentProfile, student_from_input
-from backend.services.agent import simulate_monitoring
-from backend.services.expert import ExpertSystem, FOLReasoner
-from backend.services.ml import ModelArtifactError, predict
-from backend.services.nlp import compare_bow_tfidf, process_text
-from backend.services.search import AcademicSearchEngine
+from core.models import CAREER_FRAMES, GOAL_NODE_MAP, StudentProfile, student_from_input
+from services.agent import simulate_monitoring
+from services.expert import ExpertSystem, FOLReasoner
+from services.ml import ModelArtifactError, predict
+from services.nlp import compare_bow_tfidf, process_text
+from services.search import AcademicSearchEngine
 
 
 def _knowledge_graph_skills(student: StudentProfile, skills: list[str]) -> dict:

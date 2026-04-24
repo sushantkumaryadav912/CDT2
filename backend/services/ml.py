@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from backend.core.models import StudentProfile
+from core.models import StudentProfile
 
 
 ARTIFACT_PATH = Path(__file__).resolve().parents[1] / "artifacts" / "cdt_model.pt"

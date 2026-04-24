@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from backend.core.models import CAREER_FRAMES, CareerFrame, StudentProfile
-from backend.services.nlp import extract_skills
+from core.models import CAREER_FRAMES, CareerFrame, StudentProfile
+from services.nlp import extract_skills
 
 
 @dataclass

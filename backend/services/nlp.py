@@ -11,7 +11,7 @@ from nltk.tokenize import word_tokenize
 from nltk.util import ngrams
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
-from backend.core.models import SKILL_POOL
+from core.models import SKILL_POOL
 
 
 @lru_cache(maxsize=1)

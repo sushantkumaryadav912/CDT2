@@ -6,8 +6,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pymongo import DESCENDING
 
-from backend.auth.auth import get_current_user
-from backend.db.mongo import get_analyses_collection
+from auth.auth import get_current_user
+from db.mongo import get_analyses_collection
 
 
 router = APIRouter(prefix="/api", tags=["history"])
